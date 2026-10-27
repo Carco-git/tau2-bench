@@ -46,7 +46,7 @@ const quality = (interactionPass, experiencePass) => ({
   }))),
 })
 const packages = {
-  fixture_a: { metadata: metadata('alpha-live', 'Alpha Labs', 'openai'), submission: submission((l, d) => (60 + 2 * l + 5 * d) / 100), quality: quality((l, d) => 30 + l + d, (l, d) => 40 - l) },
+  fixture_a: { metadata: metadata('alpha-live', 'Alpha Labs', 'openai'), submission: submission((l, d) => (60 + 2 * l + 5 * d) / 100), quality: quality((l, d) => 30 + l + d, l => 40 - l) },
   fixture_b: { metadata: metadata('beta-live', 'Beta AI', 'gemini'), submission: submission((l, d) => (50 + l + d) / 100), quality: quality(() => 44, (l, d) => 20 + d) },
   fixture_c: { metadata: metadata('gamma-live', 'Gamma Inc', 'xai'), submission: submission(() => 0.4), quality: null },
   fixture_custom: { metadata: metadata('delta-live', 'Delta', 'xai', 'custom'), submission: submission(() => 0.9), quality: null },
