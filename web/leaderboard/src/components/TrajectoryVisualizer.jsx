@@ -264,20 +264,25 @@ const TrajectoryVisualizer = () => {
     return groups
   }, [trajectoryData])
 
-  // Judged cells: tasks whose calls failed Interaction or Generation quality
-  // (any trial), for the task-list filter.
+  // Judged cells score one call per task (the earliest trial with a quality
+  // record); its card chips and the task-list filter both read that call.
+  const taskCalls = useMemo(() => {
+    const calls = new Map()
+    if (!cellQuality) return calls
+    for (const [taskId, sims] of simulationsByTask) {
+      const call = sims.map(sim => cellQuality.get(sim.id)).find(Boolean)
+      if (call) calls.set(taskId, call)
+    }
+    return calls
+  }, [cellQuality, simulationsByTask])
   const failedTasks = useMemo(() => {
     const failed = { interaction: new Set(), experience: new Set() }
-    if (!cellQuality) return failed
-    for (const [taskId, sims] of simulationsByTask) {
-      for (const sim of sims) {
-        const call = cellQuality.get(sim.id)
-        if (call?.interaction === 'fail') failed.interaction.add(taskId)
-        if (call?.experience === 'fail') failed.experience.add(taskId)
-      }
+    for (const [taskId, call] of taskCalls) {
+      if (call.interaction === 'fail') failed.interaction.add(taskId)
+      if (call.experience === 'fail') failed.experience.add(taskId)
     }
     return failed
-  }, [cellQuality, simulationsByTask])
+  }, [taskCalls])
   const verdictCounts = { interaction: failedTasks.interaction.size, experience: failedTasks.experience.size }
   const shownTasks = verdictFilter === 'all' ? tasks : tasks.filter(task => failedTasks[verdictFilter].has(task.id))
 
@@ -745,7 +750,7 @@ const TrajectoryVisualizer = () => {
                 <div className="task-grid">
                   {shownTasks.map((task, idx) => {
                     const sims = simulationsByTask.get(task.id) || []
-                    const call = cellQuality && sims[0] ? cellQuality.get(sims[0].id) : null
+                    const call = taskCalls.get(task.id)
                     const avgReward = sims.length > 0
                       ? (sims.reduce((sum, s) => sum + (s.reward_info?.reward || 0), 0) / sims.length)
                       : null

@@ -14,31 +14,37 @@ const measureLabel = measure => MEASURE_NAMES[measure]
   || measure.charAt(0).toUpperCase() + measure.slice(1).replace(/_/g, ' ')
 const factorLabel = factor => factor.replace(/_/g, ' ')
 
+const verdictMark = outcome => ({ pass: '✓', fail: '✗' })[outcome] || outcome || '–'
+
 // Per-call verdict chips: Interaction and Generation quality.
 export function CallVerdicts({ call, compact = false }) {
   if (!call) return null
-  const flags = Object.entries(call.flags || {}).filter(([, flagged]) => flagged)
-  const interactionTitle = flags.length
-    ? `Interaction failed: ${flags.map(([key]) => COMPONENT_NAMES[key] || key).join(', ')}`
-    : 'Interaction passed'
+  // A call fails Interaction with two or more flags, so a passing call can
+  // still carry one.
+  const flagged = Object.entries(call.flags || {})
+    .filter(([, value]) => value)
+    .map(([key]) => COMPONENT_NAMES[key] || key)
+  const interactionTitle = call.interaction === 'unscored'
+    ? 'Interaction unscored: too many checks are unknown to decide the call'
+    : `Interaction ${call.interaction === 'pass' ? 'passed' : 'failed'}${flagged.length ? ` · flagged: ${flagged.join(', ')}` : ''}`
   const experience = call.experience
-  // An unscored call has an utterance count but no issue count.
-  const issues = call.experience_issues != null && call.experience_utterances != null
+  // Counts are shown for scored calls only; an unscored call may have none.
+  const issues = experience !== 'unscored' && call.experience_issues != null && call.experience_utterances != null
     ? `${call.experience_issues} issue${call.experience_issues === 1 ? '' : 's'} / ${call.experience_utterances} utterances`
     : null
   return (
     <span className={`call-verdicts ${compact ? 'compact' : ''}`}>
       <span className={`verdict-chip ${call.interaction}`} title={interactionTitle}>
-        Interaction {call.interaction === 'pass' ? '✓' : '✗'}
-        {!compact && flags.length > 0 && <span className="verdict-detail">{flags.map(([key]) => COMPONENT_NAMES[key] || key).join(' · ')}</span>}
+        Interaction {verdictMark(call.interaction)}
+        {!compact && flagged.length > 0 && <span className="verdict-detail">{flagged.join(' · ')}</span>}
       </span>
       <span
         className={`verdict-chip ${experience}`}
         title={experience === 'unscored'
-          ? 'Generation quality unscored: a judge did not return a complete verdict for this call, so it is neither passed nor failed'
+          ? `Generation quality unscored: ${call.experience_utterances === 0 ? 'no agent utterances were judged' : 'a judge did not return a complete verdict for this call'}, so it is neither passed nor failed`
           : `Generation quality ${experience}${issues ? ` · ${issues}` : ''}`}
       >
-        Gen. quality {experience === 'pass' ? '✓' : experience === 'fail' ? '✗' : experience === 'unscored' ? 'unscored' : '–'}
+        Gen. quality {verdictMark(experience)}
         {issues && <span className="verdict-detail">{compact ? `${call.experience_issues}/${call.experience_utterances}` : issues}</span>}
       </span>
     </span>
