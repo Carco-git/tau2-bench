@@ -8,6 +8,10 @@ export const LANGUAGES = [
 ]
 export const CORE_DOMAINS = ['airline', 'retail', 'telecom']
 
+// Public names of the Interaction components and the Generation quality judges.
+export const COMPONENT_NAMES = { nonresponse: 'Non-response', interruption: 'Interruptions', selectivity: 'Selectivity errors', monologue: 'Monologues', tool_misuse: 'Tool-use errors' }
+export const MEASURE_NAMES = { naturalness: 'Naturalness', speech_fidelity: 'Speech fidelity' }
+
 // Domain benchmarks score domains outside the voice-v2 Overall. Their packages
 // attach to the same agent's voice-v2 row; they never change its Overall.
 export const DOMAIN_BENCHMARKS = { 'voice-v2-banking': 'banking_knowledge', 'voice-v2-entity': 'intake' }
