@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import VoiceViewer from './VoiceViewer'
 import ModelPicker, { EntryChips } from './ModelPicker'
+import JudgeFindings, { CallVerdicts } from './JudgeFindings'
 import {
   BENCHMARKS, DOMAINS, LANGUAGES, S3_SUBMISSIONS, SUBMISSIONS_BASE,
-  loadCell, loadSimulation, loadVisualizerIndex,
+  loadCell, loadCellQuality, loadSimulation, loadVisualizerIndex,
 } from '../data/visualizerIndex'
 import './TrajectoryVisualizer.css'
 
@@ -27,6 +28,9 @@ const TrajectoryVisualizer = () => {
   const [error, setError] = useState(null)
   // Full text simulations fetched on open, by id: { loading } | { data } | { error }
   const [simDetails, setSimDetails] = useState({})
+  // Judged cells: per-call verdicts by simulation id, and the task-list filter
+  const [cellQuality, setCellQuality] = useState(null)
+  const [verdictFilter, setVerdictFilter] = useState('all')
 
   // Task mode state
   const [taskData, setTaskData] = useState(null)
@@ -192,6 +196,17 @@ const TrajectoryVisualizer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // --- Load a judged cell's per-call verdicts (alongside its task list) ---
+  useEffect(() => {
+    setCellQuality(null)
+    setVerdictFilter('all')
+    if (viewMode !== 'trajectories' || !currentCell?.quality) return
+    let cancelled = false
+    // Verdicts are optional: on failure the task list shows without them.
+    loadCellQuality(currentCell).then(calls => !cancelled && setCellQuality(calls)).catch(() => {})
+    return () => { cancelled = true }
+  }, [currentCell, viewMode])
+
   // --- Load the selected cell's task list ---
   useEffect(() => {
     if (viewMode !== 'trajectories' || !currentCell) return
@@ -248,6 +263,23 @@ const TrajectoryVisualizer = () => {
     for (const sims of groups.values()) sims.sort((a, b) => a.trial - b.trial)
     return groups
   }, [trajectoryData])
+
+  // Judged cells: tasks whose calls failed Interaction or Generation quality
+  // (any trial), for the task-list filter.
+  const failedTasks = useMemo(() => {
+    const failed = { interaction: new Set(), experience: new Set() }
+    if (!cellQuality) return failed
+    for (const [taskId, sims] of simulationsByTask) {
+      for (const sim of sims) {
+        const call = cellQuality.get(sim.id)
+        if (call?.interaction === 'fail') failed.interaction.add(taskId)
+        if (call?.experience === 'fail') failed.experience.add(taskId)
+      }
+    }
+    return failed
+  }, [cellQuality, simulationsByTask])
+  const verdictCounts = { interaction: failedTasks.interaction.size, experience: failedTasks.experience.size }
+  const shownTasks = verdictFilter === 'all' ? tasks : tasks.filter(task => failedTasks[verdictFilter].has(task.id))
 
   // Number of distinct trials available
   const numTrials = useMemo(() => {
@@ -697,9 +729,23 @@ const TrajectoryVisualizer = () => {
                   </div>
                 </div>
 
+                {cellQuality && (
+                  <div className="verdict-filter" role="group" aria-label="Filter by judge verdict">
+                    <span>Show</span>
+                    {[
+                      ['all', 'All tasks'],
+                      ['interaction', `Interaction fails (${verdictCounts.interaction})`],
+                      ['experience', `Generation quality fails (${verdictCounts.experience})`],
+                    ].map(([key, text]) => (
+                      <button key={key} className={verdictFilter === key ? 'active' : ''} aria-pressed={verdictFilter === key} onClick={() => setVerdictFilter(key)}>{text}</button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="task-grid">
-                  {tasks.map((task, idx) => {
+                  {shownTasks.map((task, idx) => {
                     const sims = simulationsByTask.get(task.id) || []
+                    const call = cellQuality && sims[0] ? cellQuality.get(sims[0].id) : null
                     const avgReward = sims.length > 0
                       ? (sims.reduce((sum, s) => sum + (s.reward_info?.reward || 0), 0) / sims.length)
                       : null
@@ -727,6 +773,7 @@ const TrajectoryVisualizer = () => {
                           <span>{sims.length} trial{sims.length !== 1 ? 's' : ''}</span>
                           <span>{scenario ? '📞 ' + scenario.slice(0, 50) + (scenario.length > 50 ? '…' : '') : ''}</span>
                         </div>
+                        {call && <div className="task-verdicts"><CallVerdicts call={call} compact /></div>}
                       </div>
                     )
                   })}
@@ -824,6 +871,15 @@ const TrajectoryVisualizer = () => {
                     )}
                   </div>
                 </div>
+
+                {currentCell.judges && (
+                  <JudgeFindings
+                    key={currentSimulation.id}
+                    cell={currentCell}
+                    simulationId={currentSimulation.id}
+                    call={cellQuality?.get(currentSimulation.id)}
+                  />
+                )}
 
                 {/* Voice: timeline + conversation table; Text: message bubbles */}
                 {isVoice ? (

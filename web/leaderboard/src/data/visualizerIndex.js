@@ -98,4 +98,70 @@ export async function loadSimulation(cell, id) {
   return result.data
 }
 
+const qualityCache = new Map()
+
+// A judged cell's per-call Interaction and Generation quality verdicts, by
+// simulation id (from its package's benchmark-quality.json). Null when the
+// cell is not judged.
+export async function loadCellQuality(cell) {
+  if (!cell.quality) return null
+  if (!qualityCache.has(cell.quality)) {
+    const promise = fetchJson(`${SUBMISSIONS_BASE}/${cell.quality}`).then(result => {
+      if (!result.ok) throw new Error(`Failed to load judge results (HTTP ${result.status}).`)
+      return result.data
+    })
+    qualityCache.set(cell.quality, promise)
+    promise.catch(() => qualityCache.delete(cell.quality))
+  }
+  const quality = await qualityCache.get(cell.quality)
+  const match = quality.cells.find(c => c.language === cell.language && c.domain === cell.domain)
+  return new Map((match?.calls || []).map(call => [call.simulation_id, call]))
+}
+
+function parseEvidence(evidence) {
+  try {
+    return JSON.parse(evidence)
+  } catch {
+    return { reasoning: evidence }
+  }
+}
+
+// The flagged findings of one judged unit (an agent utterance, or the call for
+// tool use). Speech fidelity lists findings with a clip time range; tool use
+// reports one verdict per factor; the other judges give one reasoning.
+function unitFindings(unit) {
+  const evidence = parseEvidence(unit.evidence)
+  if (Array.isArray(evidence.findings)) {
+    const kept = evidence.findings.filter(f => !f.excluded_as_truncation)
+    return kept.map(f => ({ text: f.issue, category: f.category, severity: f.severity, time: f.time_range }))
+  }
+  if (typeof evidence.reasoning === 'string') {
+    return [{ text: evidence.reasoning, quote: evidence.quote || null, severity: evidence.severity }]
+  }
+  return Object.entries(evidence)
+    .filter(([, factor]) => factor && factor.violated)
+    .map(([key, factor]) => ({ factor: key, text: factor.reasoning, quote: factor.quote || null }))
+}
+
+// One conversation's judge verdicts: per judge, how many units it judged and
+// the flagged ones with their findings.
+export async function loadJudgeFindings(cell, id) {
+  const result = await fetchJson(`${SUBMISSIONS_BASE}/${cell.judges}/${id}.json`)
+  if (!result.ok) throw new Error(`No judge results for this conversation (HTTP ${result.status}).`)
+  return result.data.map(record => {
+    const units = record.verdict?.units || []
+    return {
+      measure: record.identity.measure,
+      error: record.error || null,
+      judged: units.filter(u => u.opportunity).length,
+      // Units the judge could not assess (e.g. speech with no transcript)
+      unitErrors: (record.verdict?.unit_errors || []).map(e => e.error),
+      flagged: units
+        .map((unit, index) => ({ index, findings: unit.violation ? unitFindings(unit) : [] }))
+        .filter(unit => unit.findings.length),
+      total: units.length,
+    }
+  })
+}
+
 export const formatEffort = effort => (effort ? effort.charAt(0).toUpperCase() + effort.slice(1) : '')

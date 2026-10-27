@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { heatScale, percent } from '../data/multilingual/metrics'
 import { CORE_DOMAINS, LANGUAGES, PASS3_DOMAINS, domainScore, interactionComponent, loadDiagnostics, packageQuality, qualityCounts, toPercent } from '../data/voiceV2Packages'
+import { COMPONENT_NAMES, MEASURE_NAMES } from '../data/voiceV2Rows'
 import './MultilingualVoice.css'
 
 // Breakdown of one submitted voice-v2 package and any banking or entity
@@ -8,10 +9,10 @@ import './MultilingualVoice.css'
 // leaderboard (MultilingualVoice).
 const languageName = Object.fromEntries(LANGUAGES.map(item => [item.id, item.name]))
 const tabs = [['task', 'Task completion'], ['interaction', 'Interaction'], ['experience', 'Generation quality']]
-const componentName = { nonresponse: 'Non-response', interruption: 'Interruptions', selectivity: 'Selectivity errors', monologue: 'Monologues', tool_misuse: 'Tool-use errors' }
+const componentName = COMPONENT_NAMES
 const domainName = { airline: 'Airline', retail: 'Retail', telecom: 'Telecom', banking_knowledge: 'Banking', intake: 'Intake' }
 const extraDomains = ['banking_knowledge', 'intake']
-const measureName = { naturalness: 'Naturalness', speech_fidelity: 'Speech fidelity' }
+const measureName = MEASURE_NAMES
 const label = (names, key) => names[key] || key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
 
 // Pool each judged measure's units over the cells of one language (or all).

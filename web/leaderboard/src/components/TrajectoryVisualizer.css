@@ -579,6 +579,10 @@
   font-weight: 500;
 }
 
+.task-verdicts {
+  margin-top: 0.6rem;
+}
+
 /* ===== Conversation View ===== */
 .conversation-view {
   /* no extra styles needed */

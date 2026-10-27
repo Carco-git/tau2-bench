@@ -89,13 +89,22 @@ function packageEntries() {
 
   return rows.map(row => {
     const packages = [row.submission ? row : null, ...Object.values(row.extras)].filter(Boolean)
-    const cells = packages.flatMap(pkg => pkg.submission.summary.cells.map(cell => ({
-      language: cell.language,
-      domain: cell.domain,
-      layout: 'dir',
-      path: `${pkg.dir}/trajectories/${cell.language}/${cell.domain}`,
-      score: toPercent(cell.score),
-    }))).sort(byCell)
+    const cells = packages.flatMap(pkg => {
+      // Judged packages name their per-call verdicts and per-simulation
+      // judge files (`judges/<agent_provider>/<language>/<sim>.json`).
+      const judged = existsSync(join(submissionsDir, pkg.dir, 'benchmark-quality.json'))
+      return pkg.submission.summary.cells.map(cell => ({
+        language: cell.language,
+        domain: cell.domain,
+        layout: 'dir',
+        path: `${pkg.dir}/trajectories/${cell.language}/${cell.domain}`,
+        score: toPercent(cell.score),
+        ...(judged && {
+          quality: `${pkg.dir}/benchmark-quality.json`,
+          judges: `${pkg.dir}/judges/${pkg.metadata.agent_provider}/${cell.language}`,
+        }),
+      }))
+    }).sort(byCell)
     const { metadata } = row
     return {
       id: row.dir,
