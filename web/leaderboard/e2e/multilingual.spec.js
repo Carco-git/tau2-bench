@@ -36,7 +36,7 @@ const submission = score => {
 // Each cell has 50 calls; `pass(l, d)` scored calls pass, two are unscored.
 const quality = (interactionPass, experiencePass) => ({
   schema_version: 'benchmark-quality-v1', benchmark_version: 'voice-v2', frame_revision: 'voice-v2-rev',
-  interaction_version: 'voice-v2-interaction-call-v1', experience_version: 'voice-v2-experience-call-v1',
+  interaction_version: 'voice-v2-interaction-call-v1', experience_version: 'voice-v2-experience-call-v2',
   cells: languages.flatMap((language, l) => domains.map((domain, d) => ({
     language, domain,
     interaction: { passed: interactionPass(l, d), failed: 48 - interactionPass(l, d), unscored: 2, excluded: 0 },
