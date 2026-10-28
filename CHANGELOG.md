@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collide. voice-v2 and text-v1 names are unchanged.
 
 ### Changed
+- `tau2 submit prepare` and `tau2 submit validate` accept saved voice cells whose
+  callers used the submitter's own voices (`TAU2_VOICE_ID_*`), as the submission
+  guide asks. The saved persona is compared with the released one without its TTS
+  voice ID, as trajectory evaluation already does; any other difference in the
+  task, persona or language context is still rejected.
 - Speech fidelity v7 replaces v6 for every language. It keeps the v6 model,
   prompt and rubric, constrains the judge's reply to the findings schema and
   lowers its output cap from 32,768 to 8,192 tokens. A clip on which the judge
