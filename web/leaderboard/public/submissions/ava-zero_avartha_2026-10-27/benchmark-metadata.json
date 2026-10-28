@@ -26,5 +26,5 @@
   "agent_provider": "avartha_pipecat",
   "agent_model": "avartha",
   "evidence": "matrix",
-  "trajectories": null
+  "trajectories": "s3://sierra-tau-bench-public/submissions/ava-zero_avartha_2026-10-27"
 }
