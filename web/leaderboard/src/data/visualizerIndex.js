@@ -143,12 +143,39 @@ function unitFindings(unit) {
     .map(([key, factor]) => ({ factor: key, text: factor.reasoning, quote: factor.quote || null }))
 }
 
+const verdictsCache = new Map()
+
+// A submitted matrix cell's verdicts, all its calls in one file.
+function loadCellVerdicts(path) {
+  if (!verdictsCache.has(path)) {
+    const promise = fetchJson(`${SUBMISSIONS_BASE}/${path}`).then(result => {
+      if (!result.ok) throw new Error(`No judge results for this cell (HTTP ${result.status}).`)
+      return result.data
+    })
+    verdictsCache.set(path, promise)
+    promise.catch(() => verdictsCache.delete(path))
+  }
+  return verdictsCache.get(path)
+}
+
+// One conversation's saved verdict records, from its cell's file or its own.
+async function loadVerdictRecords(cell, id) {
+  if (cell.verdicts) {
+    const records = (await loadCellVerdicts(cell.verdicts))
+      .filter(record => record.identity.input.simulation_id === id)
+    if (!records.length) throw new Error('No judge results for this conversation.')
+    return records
+  }
+  const result = await fetchJson(`${SUBMISSIONS_BASE}/${cell.judges}/${id}.json`)
+  if (!result.ok) throw new Error(`No judge results for this conversation (HTTP ${result.status}).`)
+  return result.data
+}
+
 // One conversation's judge verdicts: per judge, how many units it judged and
 // the flagged ones with their findings.
 export async function loadJudgeFindings(cell, id) {
-  const result = await fetchJson(`${SUBMISSIONS_BASE}/${cell.judges}/${id}.json`)
-  if (!result.ok) throw new Error(`No judge results for this conversation (HTTP ${result.status}).`)
-  return result.data.map(record => {
+  const records = await loadVerdictRecords(cell, id)
+  return records.map(record => {
     const units = record.verdict?.units || []
     return {
       measure: record.identity.measure,
