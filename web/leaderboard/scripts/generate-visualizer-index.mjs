@@ -90,9 +90,12 @@ function packageEntries() {
   return rows.map(row => {
     const packages = [row.submission ? row : null, ...Object.values(row.extras)].filter(Boolean)
     const cells = packages.flatMap(pkg => {
-      // Judged packages name their per-call verdicts and per-simulation
-      // judge files (`judges/<agent_provider>/<language>/<sim>.json`).
+      // Judged packages name their per-call verdicts and their judge files:
+      // a submitted matrix keeps one `diagnostics/verdicts.json` per cell; the
+      // release export, one file per simulation under
+      // `judges/<agent_provider>/<language>/`.
       const judged = existsSync(join(submissionsDir, pkg.dir, 'benchmark-quality.json'))
+      const matrix = pkg.metadata.evidence === 'matrix'
       return pkg.submission.summary.cells.map(cell => ({
         language: cell.language,
         domain: cell.domain,
@@ -101,7 +104,9 @@ function packageEntries() {
         score: toPercent(cell.score),
         ...(judged && {
           quality: `${pkg.dir}/benchmark-quality.json`,
-          judges: `${pkg.dir}/judges/${pkg.metadata.agent_provider}/${cell.language}`,
+          ...(matrix
+            ? { verdicts: `${pkg.dir}/trajectories/${cell.language}/${cell.domain}/diagnostics/verdicts.json` }
+            : { judges: `${pkg.dir}/judges/${pkg.metadata.agent_provider}/${cell.language}` }),
         }),
       }))
     }).sort(byCell)

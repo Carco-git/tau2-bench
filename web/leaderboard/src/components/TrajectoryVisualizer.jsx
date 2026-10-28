@@ -877,7 +877,7 @@ const TrajectoryVisualizer = () => {
                   </div>
                 </div>
 
-                {currentCell.judges && (
+                {(currentCell.judges || currentCell.verdicts) && (
                   <JudgeFindings
                     key={currentSimulation.id}
                     cell={currentCell}
