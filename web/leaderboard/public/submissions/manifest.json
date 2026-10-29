@@ -81,7 +81,8 @@
     "gpt-live-1_openai_2026-10-20",
     "grok-voice-think-fast-2-0_xai_2026-10-20",
     "gemini-3-8-live-extended-thinking_google_2026-10-07",
-    "ava-zero_avartha_2026-10-27"
+    "ava-zero_avartha_2026-10-27",
+    "phonic-1_phonic_2026-10-29"
   ],
   "voice_v2_domain_submissions": [
     "gpt-live-1_openai_2026-10-20_banking",
