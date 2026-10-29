@@ -11,7 +11,8 @@ against the tau environment, and the results go back unchanged via
 ``send_tool_call_output``.
 
 Every session sets ``phonic_model`` and ``intelligence_level`` from tau2's
-model and reasoning-effort settings and uses the default voice. Set
+model and reasoning-effort settings, ``default_language`` from the call's
+language, and uses the default voice. Set
 ``PHONIC_PROJECT`` to file the conversations under a project other than
 ``main``.
 
@@ -47,6 +48,7 @@ class PhonicProvider:
         api_key: Optional[str] = None,
         phonic_model: Optional[str] = None,
         intelligence_level: Optional[str] = None,
+        language: Optional[str] = None,
     ):
         """Initialize the Phonic provider.
 
@@ -54,6 +56,8 @@ class PhonicProvider:
             api_key: Phonic API key. If not provided, reads from PHONIC_API_KEY.
             phonic_model: Phonic model sent with each session (e.g. phonic-1).
             intelligence_level: "standard" or "high", sent with each session.
+            language: The call's language, sent as default_language so speech
+                recognition and voice match it (Phonic otherwise assumes English).
         """
         self.api_key = api_key or os.environ.get("PHONIC_API_KEY")
         if not self.api_key:
@@ -61,6 +65,7 @@ class PhonicProvider:
         self.project = os.environ.get("PHONIC_PROJECT", DEFAULT_PHONIC_PROJECT)
         self.phonic_model = phonic_model
         self.intelligence_level = intelligence_level
+        self.language = language
 
         self._cm = None
         self._socket = None
@@ -121,6 +126,8 @@ class PhonicProvider:
             config["phonic_model"] = self.phonic_model
         if self.intelligence_level:
             config["intelligence_level"] = self.intelligence_level
+        if self.language:
+            config["default_language"] = self.language
 
         self._cm = client.conversations.connect()
         self.session_id = None
