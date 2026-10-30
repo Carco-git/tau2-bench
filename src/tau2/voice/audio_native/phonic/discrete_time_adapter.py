@@ -79,6 +79,7 @@ class DiscreteTimePhonicAdapter(DiscreteTimeAdapter):
         model: Optional[str] = None,
         reasoning_effort: Optional[str] = None,
         provider: Optional[PhonicProvider] = None,
+        language: Optional[str] = None,
     ):
         """Initialize the discrete-time Phonic adapter.
 
@@ -90,6 +91,7 @@ class DiscreteTimePhonicAdapter(DiscreteTimeAdapter):
             reasoning_effort: tau2 reasoning effort, mapped to Phonic's
                 intelligence level (high/xhigh -> high, lower -> standard).
             provider: Optional provider instance. Created lazily if not provided.
+            language: The call's language (e.g. "hi"), sent as Phonic's default_language.
         """
         if (
             reasoning_effort is not None
@@ -103,6 +105,7 @@ class DiscreteTimePhonicAdapter(DiscreteTimeAdapter):
             self.audio_format.bytes_per_second * self._voip_interval_ms / 1000
         )
         self._model = model
+        self._language = language
         self._intelligence_level = _INTELLIGENCE_LEVELS.get(reasoning_effort or "")
         self._provider = provider
         self._owns_provider = provider is None
@@ -125,7 +128,9 @@ class DiscreteTimePhonicAdapter(DiscreteTimeAdapter):
     def provider(self) -> PhonicProvider:
         if self._provider is None:
             self._provider = PhonicProvider(
-                phonic_model=self._model, intelligence_level=self._intelligence_level
+                phonic_model=self._model,
+                intelligence_level=self._intelligence_level,
+                language=self._language,
             )
         return self._provider
 

@@ -562,6 +562,7 @@ def create_adapter(
             send_audio_instant=send_audio_instant,
             model=model,
             reasoning_effort=reasoning_effort,
+            language=language,
         )
     elif provider == "livekit":
         from tau2.data_model.cascaded import CascadedConfig
